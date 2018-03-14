@@ -12,4 +12,5 @@
 * dependency problems
 * embedded kafka in test causes errors
 
+![screenshot](screenshot.png "screenshot")
 ![franz.kafka](franz.kafka.jpg "fanz.kafka")

@@ -6,7 +6,7 @@
 
     <groupId>com.springfrosch</groupId>
     <artifactId>kafkagui</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 
     <name>Kafka-GUI</name>
     <description>Just a simple application that can send and listen on topics</description>
