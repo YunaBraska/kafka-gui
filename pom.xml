@@ -23,7 +23,7 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <start-class>com.ratepay.Application</start-class>
+        <start-class>com.springfrosch.kafkagui.Application</start-class>
 
         <spring-kafka.version>1.3.3.RELEASE</spring-kafka.version>
     </properties>
