@@ -1,6 +1,12 @@
 ### KAFKA GUI
 ##### Just a simple application that can send and listen on topics
 
+##### Run
+* Open terminal
+* go to the folder containing the kafka-gui.jar
+* run following command: "java -jar kafka-gui.jar"
+* Open browser "localhost:8080"
+
 ##### Setup
 * you can simply set the spring boot configurations by your own while placing a properties or yml config next to the jar file [see spring boot external config paths](https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html)
 * same thing with log configuration
