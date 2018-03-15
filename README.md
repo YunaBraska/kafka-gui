@@ -16,6 +16,8 @@
 * kafkagui.default.groupid <= default groupId
 * kafkagui.default.topic  <= default topic
 * kafkagui.default.autoconnect <= [true/false] if true it will automatically start with the default connection
+* kafkagui.default.maxmessages <= max of messages to store in cache (INTEGER)
+* kafkagui.default.displaymessages <= limit of messages on frontend output
 
 ##### Known issues
 * its just a beta

@@ -1,5 +1,6 @@
 package com.springfrosch.kafkagui.gateway;
 
+import com.springfrosch.kafkagui.model.Message;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -14,7 +15,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -40,25 +43,25 @@ public class SimpleKafkaConsumer extends KafkaConsumer<String, String> {
         setTopics(topics);
     }
 
-    public List<String> receive() {
+    public List<Message> receive() {
         return receive(new String[0]);
     }
 
-    public List<String> receive(final long timeoutMs) {
+    public List<Message> receive(final long timeoutMs) {
         return receive(timeoutMs, new String[0]);
     }
 
-    public List<String> receive(final String... topics) {
+    public List<Message> receive(final String... topics) {
         return receive(10000L, topics);
     }
 
-    public List<String> receive(final long timeoutMs, final String... topics) {
+    public List<Message> receive(final long timeoutMs, final String... topics) {
         setTopics(topics);
-        List<String> buffer = new ArrayList<>();
+        LinkedList<Message> buffer = new LinkedList<>();
 
         ConsumerRecords<String, String> records = poll(timeoutMs);
         for (ConsumerRecord<String, String> record : records) {
-            buffer.add(record.value());
+            buffer.addLast(new Message(new Date(record.timestamp()), record.topic(), record.value()));
         }
 
         commitSync();

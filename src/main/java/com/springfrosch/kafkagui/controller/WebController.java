@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,6 +29,12 @@ import java.util.UUID;
 
 @Controller
 public class WebController {
+
+    @Value("${kafkagui.default.maxmessages:5000}")
+    private Integer DEFAULT_MAX_MESSAGES;
+
+    @Value("${kafkagui.default.displaymessages:256}")
+    private Integer DEFAULT_MAX_DISPLAY_MESSAGES;
 
     @Value("${kafkagui.default.host:localhost:9092}")
     private String DEFAULT_HOST;
@@ -60,6 +67,7 @@ public class WebController {
         user.setKafkaHost(DEFAULT_HOST);
         user.setKafkaTopicSelected(DEFAULT_TOPIC);
         user.setKafkaGroupId(DEFAULT_GROUP_ID);
+        user.setMaxMessages(DEFAULT_MAX_MESSAGES);
         model.addAttribute("user", user);
         if (AUTO_CONNECT) {
             user.setKafkaTopics(new ArrayList<>(getSimpleKafkaConsumer().listTopics().keySet()));
@@ -76,7 +84,7 @@ public class WebController {
         if (hasChanged(newTopic, user.getKafkaTopicSelected())) {
             LOG.info("Change topic from [{}] to [{}]", user.getKafkaTopicSelected(), newTopic);
             user.setKafkaTopicSelected(newTopic);
-            user.setKafkaReceivedMessages(new LinkedList<>());
+//            user.setKafkaReceivedMessages(new LinkedList<>());
         }
         if (hasChanged(kafkaHost, user.getKafkaHost())) {
             LOG.info("Change host from [{}] to [{}]", user.getKafkaHost(), kafkaHost);
@@ -96,11 +104,18 @@ public class WebController {
     @RequestMapping(value = "/receive/message", method = RequestMethod.GET)
     public String receiveMessage(Model model, @RequestParam Map<String, String> params) {
         if (user.getInit()) {
-            List<String> messages = getSimpleKafkaConsumer().receive(100, user.getKafkaTopicSelected());
-            Message[] messagesArray = messages.stream().map(message -> new Message(new Date().toString(), message)).toArray(Message[]::new);
-            user.addMessages(messagesArray);
+            List<Message> messages = getSimpleKafkaConsumer().receive(100, user.getKafkaTopicSelected());
+            user.addMessages(messages.toArray(new Message[messages.size()]));
         }
-        model.addAttribute("messages", user.getKafkaReceivedMessages());
+
+        ArrayList<Message> smallMessageList = new ArrayList<>(user.getKafkaReceivedMessages());
+        Collections.reverse(smallMessageList);
+        int size = smallMessageList.size();
+        if(size > DEFAULT_MAX_DISPLAY_MESSAGES){
+            smallMessageList.subList(DEFAULT_MAX_DISPLAY_MESSAGES, size).clear();
+        }
+        model.addAttribute("messages", smallMessageList);
+        model.addAttribute("kafkaTopicSelected", user.getKafkaTopicSelected());
         return "message";
     }
 
@@ -124,7 +139,7 @@ public class WebController {
         if (hasChanged(newTopic, user.getKafkaTopicSelected())) {
             LOG.info("Change topic from [{}] to [{}]", user.getKafkaTopicSelected(), newTopic);
             user.setKafkaTopicSelected(newTopic);
-            user.setKafkaReceivedMessages(new LinkedList<>());
+//            user.setKafkaReceivedMessages(new LinkedList<>());
             reset();
         } else {
             LOG.info("No topic changed [{}]", user.getKafkaTopicSelected());

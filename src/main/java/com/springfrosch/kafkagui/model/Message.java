@@ -1,16 +1,20 @@
 package com.springfrosch.kafkagui.model;
 
+import java.util.Date;
 import java.util.Objects;
 
 public class Message {
 
     private String content;
 
-    private String date;
+    private String topic;
 
-    public Message(String date, String content) {
+    private Date date;
+
+    public Message(Date date, String topic, String content) {
         this.date = date;
         this.content = content;
+        this.topic = topic;
     }
 
     public String getContent() {
@@ -21,34 +25,44 @@ public class Message {
         this.content = content;
     }
 
-    public String getDate() {
+    public Date getDate() {
         return date;
     }
 
-    public void setDate(String date) {
+    public void setDate(Date date) {
         this.date = date;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Message message1 = (Message) o;
-        return Objects.equals(content, message1.content) &&
-                Objects.equals(date, message1.date);
+        Message message = (Message) o;
+        return Objects.equals(content, message.content) &&
+                Objects.equals(topic, message.topic) &&
+                Objects.equals(date, message.date);
     }
 
     @Override
     public int hashCode() {
 
-        return Objects.hash(content, date);
+        return Objects.hash(content, topic, date);
     }
 
     @Override
     public String toString() {
         return "Message{" +
                 "content='" + content + '\'' +
-                ", date='" + date + '\'' +
+                ", topic=" + topic +
+                ", date=" + date +
                 '}';
     }
 }

@@ -14,6 +14,8 @@ public class User {
 
     private Boolean init = false;
 
+    private Integer maxMessages = 5000;
+
     private String kafkaHost;
 
     private String kafkaGroupId;
@@ -26,7 +28,7 @@ public class User {
 
     public void addMessages(Message... messages) {
         for (Message message : messages) {
-            if (kafkaReceivedMessages.size() > 500) {
+            if (kafkaReceivedMessages.size() > maxMessages) {
                 kafkaReceivedMessages.removeFirst();
                 kafkaReceivedMessages.add(message);
             } else {
@@ -81,5 +83,13 @@ public class User {
 
     public void setInit(Boolean init) {
         this.init = init;
+    }
+
+    public Integer getMaxMessages() {
+        return maxMessages;
+    }
+
+    public void setMaxMessages(Integer maxMessages) {
+        this.maxMessages = maxMessages;
     }
 }

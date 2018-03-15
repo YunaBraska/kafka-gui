@@ -2,6 +2,7 @@ package com.springfrosch.kafkagui;
 
 import com.springfrosch.kafkagui.gateway.SimpleKafkaConsumer;
 import com.springfrosch.kafkagui.gateway.SimpleKafkaProducer;
+import com.springfrosch.kafkagui.model.Message;
 import com.springfrosch.kafkagui.util.SpringBootEmbeddedKafka;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -56,7 +57,7 @@ public class KafkaProducerComponentTest extends SpringBootEmbeddedKafka {
         SimpleKafkaProducer kafkaProducer = new SimpleKafkaProducer(HOST, PORT);
         kafkaProducer.send(DEFAULT_TOPIC, new String[]{"testMessage"});
         SimpleKafkaConsumer kafkaConsumer = new SimpleKafkaConsumer(HOST, PORT, GROUP_ID, new String[]{DEFAULT_TOPIC});
-        List<String> receivedMessages = kafkaConsumer.receive(20000);
+        List<Message> receivedMessages = kafkaConsumer.receive(20000);
         assertThat(receivedMessages.contains("testMessage"), is(true));
     }
 

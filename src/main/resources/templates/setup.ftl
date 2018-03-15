@@ -77,7 +77,7 @@
         <td style="vertical-align:top; width:70%;">
             <#if user.init>
             <div>
-                <label class="hello-title">Received Messages (limit 500):</label>
+                <label class="hello-title">Received Messages:</label>
                 <div>
                     <ul id="receivedMessages" class="collection"></ul>
                 </div>
