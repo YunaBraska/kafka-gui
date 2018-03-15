@@ -2,15 +2,17 @@ package com.springfrosch.kafkagui.controller;
 
 import com.springfrosch.kafkagui.gateway.SimpleKafkaConsumer;
 import com.springfrosch.kafkagui.gateway.SimpleKafkaProducer;
+import com.springfrosch.kafkagui.model.Message;
 import com.springfrosch.kafkagui.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +28,18 @@ import java.util.UUID;
 
 @Controller
 public class WebController {
+
+    @Value("${kafkagui.default.host:localhost:9092}")
+    private String DEFAULT_HOST;
+
+    @Value("${kafkagui.default.topic:defaultTopic}")
+    private String DEFAULT_TOPIC;
+
+    @Value("${kafkagui.default.groupid:#{defaults.getHostname()}}")
+    private String DEFAULT_GROUP_ID;
+
+    @Value("${kafkagui.default.autoconnect:false}")
+    private Boolean AUTO_CONNECT;
 
     @Autowired
     private User user;
@@ -40,25 +55,21 @@ public class WebController {
     private static final Logger LOG = LoggerFactory.getLogger(WebController.class);
 
     @GetMapping(value = "/setup")
-    public String setupInit(Model model, @RequestAttribute(value = "kafkaHost", required = false) String kafkaHost) {
+    public String setupInit(Model model) {
         LOG.info("Initialing Session");
-        user.setKafkaHost(kafkaHost == null ? "172.19.192.193:9092" : kafkaHost);
-        user.setKafkaTopicSelected("defaultTopic");
-        try {
-            user.setKafkaGroupId(InetAddress.getLocalHost().getHostName());
-        } catch (UnknownHostException e) {
-            user.setKafkaGroupId(UUID.randomUUID().toString());
-        }
+        user.setKafkaHost(DEFAULT_HOST);
+        user.setKafkaTopicSelected(DEFAULT_TOPIC);
+        user.setKafkaGroupId(DEFAULT_GROUP_ID);
         model.addAttribute("user", user);
+        if (AUTO_CONNECT) {
+            user.setKafkaTopics(new ArrayList<>(getSimpleKafkaConsumer().listTopics().keySet()));
+            user.setInit(true);
+        }
         return "setup";
     }
 
     @PostMapping("/setup")
     public String setupAction(Model model, @RequestParam Map<String, String> params) {
-//        if (user.getKafkaConsumer() == null || connectionChanged(params)) {
-//            LOG.info("Create new connection");
-//            createNewConnection();
-//        }
         String newTopic = params.get("kafkaTopicSelected");
         String kafkaHost = params.get("kafkaHost");
         String kafkaGroupId = params.get("kafkaGroupId");
@@ -86,7 +97,8 @@ public class WebController {
     public String receiveMessage(Model model, @RequestParam Map<String, String> params) {
         if (user.getInit()) {
             List<String> messages = getSimpleKafkaConsumer().receive(100, user.getKafkaTopicSelected());
-            user.addMessages(messages.toArray(new String[messages.size()]));
+            Message[] messagesArray = messages.stream().map(message -> new Message(new Date().toString(), message)).toArray(Message[]::new);
+            user.addMessages(messagesArray);
         }
         model.addAttribute("messages", user.getKafkaReceivedMessages());
         return "message";
@@ -114,7 +126,6 @@ public class WebController {
             user.setKafkaTopicSelected(newTopic);
             user.setKafkaReceivedMessages(new LinkedList<>());
             reset();
-//            createNewConnection();
         } else {
             LOG.info("No topic changed [{}]", user.getKafkaTopicSelected());
         }
@@ -147,26 +158,43 @@ public class WebController {
         return simpleKafkaProducer;
     }
 
-//    private void createNewConnection() {
-//        SimpleKafkaConsumer kafkaConsumer = user.getKafkaConsumer();
-//        SimpleKafkaProducer kafkaProducer = user.getKafkaProducer();
-//        if (kafkaConsumer != null) {
-//            kafkaConsumer.close();
-//        }
-//        if (kafkaProducer != null) {
-//            kafkaProducer.close();
-//        }
-//        user.setKafkaConsumer(new SimpleKafkaConsumer(user.getKafkaHost(), user.getKafkaGroupId(), new String[]{user.getKafkaTopicSelected()}));
-//        user.setKafkaProducer(new SimpleKafkaProducer(user.getKafkaHost(), user.getKafkaTopicSelected()));
-//        user.setKafkaTopics(new ArrayList<>(user.getKafkaConsumer().listTopics().keySet()));
-//    }
-
 //    private boolean connectionChanged(Map<String, String> params) {
 //        return (hasChanged(params.get("kafkaHost"), user.getKafkaHost()) || hasChanged(params.get("kafkaGroupId"), user.getKafkaGroupId()) || hasChanged(params.get("kafkaTopicSelected"), user.getKafkaTopicSelected()));
 //    }
 
     private boolean hasChanged(String check, String against) {
         return check != null && !check.isEmpty() && !check.equals(against);
+    }
+
+
+//    private SimpleKafkaConsumer getSimpleKafkaConsumer() {
+//        if (simpleKafkaConsumer == null) {
+//            simpleKafkaConsumer = getSimpleKafkaConsumer(user.getKafkaHost(), user.getKafkaGroupId(), user.getKafkaTopicSelected());
+//        }
+//        return simpleKafkaConsumer;
+//    }
+//
+//    private SimpleKafkaConsumer getSimpleKafkaConsumer(String host, String groupId, String... topic) {
+//        if (simpleKafkaConsumer == null) {
+//            try {
+//                FutureTask<SimpleKafkaConsumer> timeoutTask = new FutureTask<>(() -> new SimpleKafkaConsumer(host, groupId, topic));
+//                new Thread(timeoutTask).start();
+//                return timeoutTask.get(10L, TimeUnit.SECONDS);
+//            } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
+//            }
+//        }
+//        return simpleKafkaConsumer;
+//    }
+
+    @Component("defaults")
+    public class Defaults {
+        public String getHostname() {
+            try {
+                return InetAddress.getLocalHost().getHostName();
+            } catch (UnknownHostException e) {
+                return UUID.randomUUID().toString();
+            }
+        }
     }
 
 

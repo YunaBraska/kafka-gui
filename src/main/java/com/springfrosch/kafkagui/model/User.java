@@ -20,12 +20,12 @@ public class User {
 
     private List<String> kafkaTopics = new ArrayList<>();
 
-    private LinkedList<String> kafkaReceivedMessages = new LinkedList<>();
+    private LinkedList<Message> kafkaReceivedMessages = new LinkedList<>();
 
     private String kafkaTopicSelected;
 
-    public void addMessages(String... messages) {
-        for (String message : messages) {
+    public void addMessages(Message... messages) {
+        for (Message message : messages) {
             if (kafkaReceivedMessages.size() > 500) {
                 kafkaReceivedMessages.removeFirst();
                 kafkaReceivedMessages.add(message);
@@ -67,11 +67,11 @@ public class User {
         this.kafkaTopicSelected = kafkaTopicSelected;
     }
 
-    public LinkedList<String> getKafkaReceivedMessages() {
+    public LinkedList<Message> getKafkaReceivedMessages() {
         return kafkaReceivedMessages;
     }
 
-    public void setKafkaReceivedMessages(LinkedList<String> kafkaReceivedMessages) {
+    public void setKafkaReceivedMessages(LinkedList<Message> kafkaReceivedMessages) {
         this.kafkaReceivedMessages = kafkaReceivedMessages;
     }
 

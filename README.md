@@ -2,7 +2,14 @@
 ##### Just a simple application that can send and listen on topics
 
 ##### Setup
-* you can configure (like a port config) by your own while placing a properties or yml file except kafka configs
+* you can simply set the spring boot configurations by your own while placing a properties or yml config next to the jar file [see spring boot external config paths](https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html)
+* same thing with log configuration
+
+##### Properties (optional)
+* kafkagui.default.host <= default ip/hostname with port
+* kafkagui.default.groupid <= default groupId
+* kafkagui.default.topic  <= default topic
+* kafkagui.default.autoconnect <= [true/false] if true it will automatically start with the default connection
 
 ##### Known issues
 * its just a beta
@@ -11,6 +18,10 @@
 * listen on multiple topic and other non default actions causes errors
 * dependency problems
 * embedded kafka in test causes errors
+* errorhandling missing
+* timeout at connect
+* css issues max-width and rows at receiving messages missing
+* JSON formatter receiving messages missing
 
 ![screenshot](screenshot.png "screenshot")
 ![franz.kafka](franz.kafka.jpg "fanz.kafka")

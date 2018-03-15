@@ -11,10 +11,10 @@
 </head>
 <body>
 
-<div align="center"><label>Setup Environment</label></div>
+<div align="center"><label>Kafka Gui</label></div>
 <table>
     <tr>
-        <td style="vertical-align:bottom;">
+        <td style="vertical-align:bottom; width:30%;">
             <div>
                 <label>Configuration</label>
                 <form id="environment" name="environment" action="/setup" method="post">
@@ -34,11 +34,11 @@
                 </form>
             </div>
         </td>
-        <td  style="vertical-align:bottom;">
+        <td  style="vertical-align:bottom; width:70%;">
         <#if user.init>
             <div>
                 <label for="produce_message">ProduceMessage</label>
-                <textarea id="produce_message" name="produce_message"></textarea>
+                <textarea id="produce_message" name="produce_message" style="height: 200px;"></textarea>
             </div>
             <div>
                 <input id="produce_btn" class="btn waves-effect waves-light hoverable purple darken-4" type="submit" value="send message"/>
@@ -54,7 +54,7 @@
         </td>
     </tr>
     <tr>
-        <td style="vertical-align:top;">
+        <td style="vertical-align:top; width:30%;">
             <#if user.init>
             <div class="collection">
                 <label class="hello-title">TopicList:</label>
@@ -74,7 +74,7 @@
             </script>
             </#if>
         </td>
-        <td style="vertical-align:top;">
+        <td style="vertical-align:top; width:70%;">
             <#if user.init>
             <div>
                 <label class="hello-title">Received Messages (limit 500):</label>
