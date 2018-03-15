@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Controller
 public class WebController {
@@ -108,7 +109,7 @@ public class WebController {
             user.addMessages(messages.toArray(new Message[messages.size()]));
         }
 
-        ArrayList<Message> smallMessageList = new ArrayList<>(user.getKafkaReceivedMessages());
+        List<Message> smallMessageList = user.getKafkaReceivedMessages().stream().filter(message -> message.getTopic().equals(user.getKafkaTopicSelected())).collect(Collectors.toList());
         Collections.reverse(smallMessageList);
         int size = smallMessageList.size();
         if(size > DEFAULT_MAX_DISPLAY_MESSAGES){
