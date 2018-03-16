@@ -21,14 +21,11 @@
 
 ##### Known issues
 * its just a beta
-* not thread safe
-* consumer & producer is static and don't belong to the user
+* consumer & producer is singleton
 * listen on multiple topic and other non default actions causes errors
-* dependency problems
+* duplicated dependency problems
 * embedded kafka in test causes errors
-* errorhandling missing
-* timeout at connect
-* css issues max-width and rows at receiving messages missing
+* no timeout at connect
 * JSON formatter receiving messages missing
 
 ![screenshot](screenshot.png "screenshot")

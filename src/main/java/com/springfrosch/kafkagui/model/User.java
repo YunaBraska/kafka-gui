@@ -7,12 +7,15 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @Scope(proxyMode = ScopedProxyMode.TARGET_CLASS, scopeName = "session")
 public class User {
 
-    private Boolean init = false;
+    private Boolean connected = false;
+
+    private String error = null;
 
     private Integer maxMessages = 5000;
 
@@ -26,15 +29,23 @@ public class User {
 
     private String kafkaTopicSelected;
 
-    public void addMessages(Message... messages) {
+    public void addMessages(LinkedList<Message> messages) {
         for (Message message : messages) {
-            if (kafkaReceivedMessages.size() > maxMessages) {
-                kafkaReceivedMessages.removeFirst();
-                kafkaReceivedMessages.add(message);
-            } else {
-                kafkaReceivedMessages.add(message);
-            }
+            addMessage(message);
         }
+    }
+
+    public void addMessage(Message message) {
+        if (kafkaReceivedMessages.size() > maxMessages) {
+            kafkaReceivedMessages.removeFirst();
+        }
+        kafkaReceivedMessages.addLast(message);
+    }
+
+    public List<Message> getKafkaReceivedMessages(String topic) {
+        return getKafkaReceivedMessages().stream()
+                .filter(message -> message.getTopic().equals(topic))
+                .collect(Collectors.toList());
     }
 
     public String getKafkaHost() {
@@ -77,12 +88,12 @@ public class User {
         this.kafkaReceivedMessages = kafkaReceivedMessages;
     }
 
-    public Boolean getInit() {
-        return init;
+    public Boolean getConnected() {
+        return connected;
     }
 
-    public void setInit(Boolean init) {
-        this.init = init;
+    public void setConnected(Boolean connected) {
+        this.connected = connected;
     }
 
     public Integer getMaxMessages() {
@@ -91,5 +102,13 @@ public class User {
 
     public void setMaxMessages(Integer maxMessages) {
         this.maxMessages = maxMessages;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    public String getError() {
+        return error;
     }
 }

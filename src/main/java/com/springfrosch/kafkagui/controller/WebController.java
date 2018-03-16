@@ -1,7 +1,6 @@
 package com.springfrosch.kafkagui.controller;
 
-import com.springfrosch.kafkagui.gateway.SimpleKafkaConsumer;
-import com.springfrosch.kafkagui.gateway.SimpleKafkaProducer;
+import com.springfrosch.kafkagui.logic.KafkaService;
 import com.springfrosch.kafkagui.model.Message;
 import com.springfrosch.kafkagui.model.User;
 import org.slf4j.Logger;
@@ -21,8 +20,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -52,13 +49,13 @@ public class WebController {
     @Autowired
     private User user;
 
+    @Autowired
+    private KafkaService kafkaService;
+
     @GetMapping("/")
     public String index() {
         return "redirect:/setup";
     }
-
-    private static SimpleKafkaConsumer simpleKafkaConsumer;
-    private static SimpleKafkaProducer simpleKafkaProducer;
 
     private static final Logger LOG = LoggerFactory.getLogger(WebController.class);
 
@@ -69,138 +66,69 @@ public class WebController {
         user.setKafkaTopicSelected(DEFAULT_TOPIC);
         user.setKafkaGroupId(DEFAULT_GROUP_ID);
         user.setMaxMessages(DEFAULT_MAX_MESSAGES);
-        model.addAttribute("user", user);
         if (AUTO_CONNECT) {
-            user.setKafkaTopics(new ArrayList<>(getSimpleKafkaConsumer().listTopics().keySet()));
-            user.setInit(true);
+            connectToKafka();
         }
+        model.addAttribute("user", user);
         return "setup";
     }
 
     @PostMapping("/setup")
     public String setupAction(Model model, @RequestParam Map<String, String> params) {
-        String newTopic = params.get("kafkaTopicSelected");
-        String kafkaHost = params.get("kafkaHost");
-        String kafkaGroupId = params.get("kafkaGroupId");
-        if (hasChanged(newTopic, user.getKafkaTopicSelected())) {
-            LOG.info("Change topic from [{}] to [{}]", user.getKafkaTopicSelected(), newTopic);
-            user.setKafkaTopicSelected(newTopic);
-//            user.setKafkaReceivedMessages(new LinkedList<>());
-        }
-        if (hasChanged(kafkaHost, user.getKafkaHost())) {
-            LOG.info("Change host from [{}] to [{}]", user.getKafkaHost(), kafkaHost);
-            user.setKafkaHost(kafkaHost);
-        }
-        if (hasChanged(kafkaGroupId, user.getKafkaGroupId())) {
-            LOG.info("Change topic from [{}] to [{}]", user.getKafkaGroupId(), kafkaGroupId);
-            user.setKafkaGroupId(kafkaGroupId);
-        }
-        reset();
-        user.setKafkaTopics(new ArrayList<>(getSimpleKafkaConsumer().listTopics().keySet()));
-        user.setInit(true);
+        user.setKafkaHost(params.get("kafkaHost"));
+        user.setKafkaGroupId(params.get("kafkaGroupId"));
+        user.setKafkaTopicSelected(params.get("kafkaTopicSelected"));
+
+        connectToKafka();
         model.addAttribute("user", user);
         return "setup";
     }
 
     @RequestMapping(value = "/receive/message", method = RequestMethod.GET)
-    public String receiveMessage(Model model, @RequestParam Map<String, String> params) {
-        if (user.getInit()) {
-            List<Message> messages = getSimpleKafkaConsumer().receive(100, user.getKafkaTopicSelected());
-            user.addMessages(messages.toArray(new Message[messages.size()]));
-        }
+    public String receiveMessage(Model model) {
+        user.addMessages(kafkaService.receiveMessages());
 
-        List<Message> smallMessageList = user.getKafkaReceivedMessages().stream().filter(message -> message.getTopic().equals(user.getKafkaTopicSelected())).collect(Collectors.toList());
-        Collections.reverse(smallMessageList);
-        int size = smallMessageList.size();
-        if(size > DEFAULT_MAX_DISPLAY_MESSAGES){
-            smallMessageList.subList(DEFAULT_MAX_DISPLAY_MESSAGES, size).clear();
-        }
-        model.addAttribute("messages", smallMessageList);
+        List<Message> messageList =  user.getKafkaReceivedMessages(user.getKafkaTopicSelected());
+        Collections.reverse(messageList);
+        messageList = messageList.stream().limit(DEFAULT_MAX_DISPLAY_MESSAGES).collect(Collectors.toList());
+
+        model.addAttribute("messages", messageList);
         model.addAttribute("kafkaTopicSelected", user.getKafkaTopicSelected());
         return "message";
     }
 
-    @RequestMapping(value = "/post/message", method = RequestMethod.GET)
+    @RequestMapping(value = "/post/message", method = RequestMethod.POST)
     public String postMessage(Model model, @RequestParam Map<String, String> params) {
-        String sendToTopic = params.get("produce_message");
-        if (sendToTopic != null && !sendToTopic.isEmpty()) {
-            LOG.info("Sending message topic");
-            getSimpleKafkaProducer().send(user.getKafkaTopicSelected(), new String[]{sendToTopic.replace("\n", "").replace("\r", "")});
-        }
-        model.addAttribute("response", user.getKafkaTopicSelected());
+        model.addAttribute("messageSend", kafkaService.sendMessage(params.get("produce_message")));
         return "response";
     }
 
-    @RequestMapping(value = "/post/topic", method = RequestMethod.GET)
+    @RequestMapping(value = "/post/topic", method = RequestMethod.POST)
     public String postTopic(Model model, @RequestParam Map<String, String> params) {
-        String newTopic = null;
-        if (!params.isEmpty()) {
-            newTopic = params.keySet().iterator().next();
+        if (!params.isEmpty() && setNewTopic(params.keySet().iterator().next())) {
+            connectToKafka();
         }
-        if (hasChanged(newTopic, user.getKafkaTopicSelected())) {
-            LOG.info("Change topic from [{}] to [{}]", user.getKafkaTopicSelected(), newTopic);
-            user.setKafkaTopicSelected(newTopic);
-//            user.setKafkaReceivedMessages(new LinkedList<>());
-            reset();
-        } else {
-            LOG.info("No topic changed [{}]", user.getKafkaTopicSelected());
-        }
-        model.addAttribute("response", user.getKafkaTopicSelected());
+        model.addAttribute("kafkaTopicSelected", user.getKafkaTopicSelected());
         return "response";
     }
 
-    private void reset() {
-        if (simpleKafkaConsumer != null) {
-            simpleKafkaConsumer.close();
+    private void connectToKafka() {
+        user.setConnected(kafkaService.connect(user.getKafkaHost(), user.getKafkaGroupId(), user.getKafkaTopicSelected()));
+        user.setError(kafkaService.getError());
+        if (user.getConnected()) {
+            user.setKafkaTopics(new ArrayList<>(kafkaService.consumer().listTopics().keySet()));
+        } else {
+            user.setKafkaTopics(new ArrayList<>());
         }
-        if (simpleKafkaProducer != null) {
-            simpleKafkaProducer.close();
-        }
-        simpleKafkaConsumer = null;
-        simpleKafkaProducer = null;
     }
 
-    private SimpleKafkaConsumer getSimpleKafkaConsumer() {
-        if (simpleKafkaConsumer == null) {
-            simpleKafkaConsumer = new SimpleKafkaConsumer(user.getKafkaHost(), user.getKafkaGroupId(), new String[]{user.getKafkaTopicSelected()});
+    private boolean setNewTopic(String newTopic) {
+        if(newTopic != null && !newTopic.isEmpty() && !newTopic.equals(user.getKafkaTopicSelected())){
+            user.setKafkaTopicSelected(newTopic);
+            return true;
         }
-        return simpleKafkaConsumer;
+        return false;
     }
-
-    private SimpleKafkaProducer getSimpleKafkaProducer() {
-        if (simpleKafkaProducer == null) {
-            simpleKafkaProducer = new SimpleKafkaProducer(user.getKafkaHost(), user.getKafkaTopicSelected());
-        }
-        return simpleKafkaProducer;
-    }
-
-//    private boolean connectionChanged(Map<String, String> params) {
-//        return (hasChanged(params.get("kafkaHost"), user.getKafkaHost()) || hasChanged(params.get("kafkaGroupId"), user.getKafkaGroupId()) || hasChanged(params.get("kafkaTopicSelected"), user.getKafkaTopicSelected()));
-//    }
-
-    private boolean hasChanged(String check, String against) {
-        return check != null && !check.isEmpty() && !check.equals(against);
-    }
-
-
-//    private SimpleKafkaConsumer getSimpleKafkaConsumer() {
-//        if (simpleKafkaConsumer == null) {
-//            simpleKafkaConsumer = getSimpleKafkaConsumer(user.getKafkaHost(), user.getKafkaGroupId(), user.getKafkaTopicSelected());
-//        }
-//        return simpleKafkaConsumer;
-//    }
-//
-//    private SimpleKafkaConsumer getSimpleKafkaConsumer(String host, String groupId, String... topic) {
-//        if (simpleKafkaConsumer == null) {
-//            try {
-//                FutureTask<SimpleKafkaConsumer> timeoutTask = new FutureTask<>(() -> new SimpleKafkaConsumer(host, groupId, topic));
-//                new Thread(timeoutTask).start();
-//                return timeoutTask.get(10L, TimeUnit.SECONDS);
-//            } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
-//            }
-//        }
-//        return simpleKafkaConsumer;
-//    }
 
     @Component("defaults")
     public class Defaults {

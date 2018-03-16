@@ -2,12 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Setup Environment</title>
-    <link href="/css/main.css" rel="stylesheet">
+    <title>Kafka Gui</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-    <script type="text/javascript" src="js/materialize.min.js"></script>
 </head>
 <body>
 
@@ -35,7 +33,7 @@
             </div>
         </td>
         <td  style="vertical-align:bottom; width:70%;">
-        <#if user.init>
+        <#if user.connected>
             <div>
                 <label for="produce_message">ProduceMessage</label>
                 <textarea id="produce_message" name="produce_message" style="height: 200px;"></textarea>
@@ -45,7 +43,7 @@
                 <script>
                     $(document).ready(function () {
                         $("#produce_btn").click(function () {
-                            $.get("/post/message", $("#produce_message").serialize());
+                            $.post("/post/message", $("#produce_message").serialize());
                         });
                     });
                 </script>
@@ -55,7 +53,7 @@
     </tr>
     <tr>
         <td style="vertical-align:top; width:30%;">
-            <#if user.init>
+            <#if user.connected>
             <div class="collection">
                 <label class="hello-title">TopicList:</label>
                 <#list user.kafkaTopics as topic>
@@ -68,14 +66,14 @@
                 $(document).ready(function () {
                     $(".topic_btn").click(function () {
                         $("#kafkaTopicSelected").val($(this).text());
-                        $.get("/post/topic", $(this).text());
+                        $.post("/post/topic", $(this).text());
                     });
                 });
             </script>
             </#if>
         </td>
         <td style="vertical-align:top; width:70%;">
-            <#if user.init>
+            <#if user.connected>
             <div>
                 <label class="hello-title">Received Messages:</label>
                 <div>

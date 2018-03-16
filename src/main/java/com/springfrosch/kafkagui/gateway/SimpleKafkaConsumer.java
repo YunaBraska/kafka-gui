@@ -43,29 +43,29 @@ public class SimpleKafkaConsumer extends KafkaConsumer<String, String> {
         setTopics(topics);
     }
 
-    public List<Message> receive() {
+    public LinkedList<Message> receive() {
         return receive(new String[0]);
     }
 
-    public List<Message> receive(final long timeoutMs) {
+    public LinkedList<Message> receive(final long timeoutMs) {
         return receive(timeoutMs, new String[0]);
     }
 
-    public List<Message> receive(final String... topics) {
+    public LinkedList<Message> receive(final String... topics) {
         return receive(10000L, topics);
     }
 
-    public List<Message> receive(final long timeoutMs, final String... topics) {
+    public LinkedList<Message> receive(final long timeoutMs, final String... topics) {
         setTopics(topics);
-        LinkedList<Message> buffer = new LinkedList<>();
+        LinkedList<Message> messageList = new LinkedList<>();
 
         ConsumerRecords<String, String> records = poll(timeoutMs);
         for (ConsumerRecord<String, String> record : records) {
-            buffer.addLast(new Message(new Date(record.timestamp()), record.topic(), record.value()));
+            messageList.addLast(new Message(new Date(record.timestamp()), record.topic(), record.value()));
         }
 
         commitSync();
-        return buffer;
+        return messageList;
     }
 
     private void setTopics(final String... topics) {
@@ -89,6 +89,8 @@ public class SimpleKafkaConsumer extends KafkaConsumer<String, String> {
         consumerConfig.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
         consumerConfig.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100");
         consumerConfig.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "15000");
+        consumerConfig.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, "3000");
+//        consumerConfig.put("request.timeout.ms", "5000");
         consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         try {
