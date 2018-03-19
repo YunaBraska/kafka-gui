@@ -116,7 +116,7 @@ public class WebController {
         user.setConnected(kafkaService.connect(user.getKafkaHost(), user.getKafkaGroupId(), user.getKafkaTopicSelected()));
         user.setError(kafkaService.getError());
         if (user.getConnected()) {
-            user.setKafkaTopics(new ArrayList<>(kafkaService.consumer().listTopics().keySet()));
+            user.setKafkaTopics(kafkaService.consumer().listTopicNames());
         } else {
             user.setKafkaTopics(new ArrayList<>());
         }

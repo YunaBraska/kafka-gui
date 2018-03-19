@@ -15,6 +15,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -43,19 +44,19 @@ public class SimpleKafkaConsumer extends KafkaConsumer<String, String> {
         setTopics(topics);
     }
 
-    public LinkedList<Message> receive() {
+    public synchronized LinkedList<Message> receive() {
         return receive(new String[0]);
     }
 
-    public LinkedList<Message> receive(final long timeoutMs) {
+    public synchronized LinkedList<Message> receive(final long timeoutMs) {
         return receive(timeoutMs, new String[0]);
     }
 
-    public LinkedList<Message> receive(final String... topics) {
+    public synchronized LinkedList<Message> receive(final String... topics) {
         return receive(10000L, topics);
     }
 
-    public LinkedList<Message> receive(final long timeoutMs, final String... topics) {
+    public synchronized LinkedList<Message> receive(final long timeoutMs, final String... topics) {
         setTopics(topics);
         LinkedList<Message> messageList = new LinkedList<>();
 
@@ -66,6 +67,12 @@ public class SimpleKafkaConsumer extends KafkaConsumer<String, String> {
 
         commitSync();
         return messageList;
+    }
+
+    public synchronized List<String> listTopicNames() {
+        ArrayList<String> topicList = new ArrayList<>(super.listTopics().keySet());
+        Collections.sort(topicList);
+        return topicList;
     }
 
     private void setTopics(final String... topics) {

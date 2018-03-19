@@ -4,11 +4,13 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
 
 import static org.apache.kafka.clients.producer.ProducerConfig.ACKS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.BATCH_SIZE_CONFIG;
@@ -20,6 +22,8 @@ import static org.apache.kafka.clients.producer.ProducerConfig.LINGER_MS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 
 public class SimpleKafkaProducer extends KafkaProducer<String, String> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SimpleKafkaProducer.class);
 
     private String topic;
 
@@ -36,17 +40,21 @@ public class SimpleKafkaProducer extends KafkaProducer<String, String> {
         super(createProducerConfig(host + ":" + port));
     }
 
-    public List<Future<RecordMetadata>> send(final String... messages) {
+    public synchronized List<RecordMetadata> send(final String... messages) {
         return send(topic, messages);
     }
 
-    public List<Future<RecordMetadata>> send(final String topic, final String... messages) {
-        if(topic == null || topic.isEmpty()){
+    public synchronized List<RecordMetadata> send(final String topic, final String... messages) {
+        if (topic == null || topic.isEmpty()) {
             throw new IllegalStateException("This consumer is not listening to any topic");
         }
-        List<Future<RecordMetadata>> recordMetadataList = new ArrayList<>();
+        List<RecordMetadata> recordMetadataList = new ArrayList<>();
         for (String message : messages) {
-            recordMetadataList.add(send(new ProducerRecord<>(topic, message)));
+            try {
+                recordMetadataList.add(send(new ProducerRecord<>(topic, message)).get());
+            } catch (InterruptedException | ExecutionException e) {
+                LOG.error(e.getMessage(), e);
+            }
         }
         return recordMetadataList;
     }

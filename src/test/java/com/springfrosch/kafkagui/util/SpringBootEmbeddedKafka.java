@@ -1,28 +1,46 @@
 package com.springfrosch.kafkagui.util;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
+import com.springfrosch.kafkagui.logic.KafkaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.rule.KafkaEmbedded;
-import org.springframework.test.annotation.DirtiesContext;
 
-import static org.springframework.test.annotation.DirtiesContext.MethodMode.BEFORE_METHOD;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.UUID;
+
+import static org.springframework.kafka.test.rule.KafkaEmbedded.SPRING_EMBEDDED_KAFKA_BROKERS;
 
 //@DirtiesContext(methodMode = BEFORE_METHOD) //DirtiesContext is needed to recreate a clean Kafka for each test
-//@EmbeddedKafka(partitions = 1, brokerProperties = {"listeners=PLAINTEXT://localhost:9092", "PORT=9092"})
+@EmbeddedKafka(partitions = 1, brokerProperties = {"listeners=PLAINTEXT://localhost:9092", "PORT=9092"})
 public abstract class SpringBootEmbeddedKafka {
 
-//    @Autowired
-//    public KafkaTemplate<String, String> template;
-//
-//    //FIXME: everything below here is a fix for the IDE - else @EmbeddedKafka should be enough
-//    @Autowired
-//    public KafkaEmbedded kafkaEmbedded;
-//
-//    @ClassRule
-//    public static KafkaEmbedded embeddedKafka = new KafkaEmbedded(1, true, 0);
-//
+    protected String HOST = "localhost:9092";
+    protected String DEFAULT_TOPIC = "defaultTopic";
+    protected String GROUP_ID;
+
+    {
+        try {
+            GROUP_ID = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Autowired
+    protected KafkaEmbedded kafkaEmbedded;
+
+    protected void waitForEmbeddedKafka() {
+        String topic = UUID.randomUUID().toString();
+        KafkaService kafkaService = new KafkaService();
+        do {
+            kafkaService.connect(System.getProperty(SPRING_EMBEDDED_KAFKA_BROKERS), GROUP_ID, topic);
+            kafkaService.sendMessage(UUID.randomUUID().toString());
+        } while (kafkaService.receiveMessages(100).size() == 0);
+        kafkaService.close();
+        HOST = System.getProperty(SPRING_EMBEDDED_KAFKA_BROKERS);
+    }
+
 //    @BeforeClass
 //    public static void setUpClass() {
 //        //FIXME: Couldn't find kafka server configurations - kafka server is listening on a random PORT so i overwrite the client config here should be other way around

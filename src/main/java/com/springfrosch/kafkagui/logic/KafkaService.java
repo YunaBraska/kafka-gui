@@ -3,11 +3,15 @@ package com.springfrosch.kafkagui.logic;
 import com.springfrosch.kafkagui.gateway.SimpleKafkaConsumer;
 import com.springfrosch.kafkagui.gateway.SimpleKafkaProducer;
 import com.springfrosch.kafkagui.model.Message;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 
 @Service
 public class KafkaService {
@@ -34,10 +38,13 @@ public class KafkaService {
         return true;
     }
 
-    //TODO: implement locks
     public LinkedList<Message> receiveMessages() {
+        return receiveMessages(100);
+    }
+
+    public LinkedList<Message> receiveMessages(int timeoutMs) {
         if (isConnected()) {
-            return consumer().receive(100);
+            return consumer().receive(timeoutMs);
         } else {
             return new LinkedList<>();
         }
@@ -46,7 +53,7 @@ public class KafkaService {
     public boolean sendMessage(String message) {
         if (isConnected() && message != null && !message.isEmpty()) {
             LOG.debug("Sending message [{}]", message);
-            producer().send(new String[]{message.replace("\n", "").replace("\r", "")});
+            List<RecordMetadata> send = producer().send(new String[]{message.replace("\n", "").replace("\r", "")});
             return true;
         } else {
             LOG.debug("Failed to send message [{}]", message);
@@ -54,7 +61,7 @@ public class KafkaService {
         }
     }
 
-    private void close() {
+    public void close() {
         try {
             if (simpleKafkaConsumer != null) {
                 simpleKafkaConsumer.close();
